@@ -1,8 +1,9 @@
 #include "kmath.h"
-#include "platform/platform.h"
 
 #include <math.h>
 #include <stdlib.h>
+
+#include "platform/platform.h"
 
 static b8 rand_seeded = false;
 
@@ -10,29 +11,17 @@ static b8 rand_seeded = false;
  * Note that these are here in order to prevent having to import the
  * entire <math.h> everywhere.
  */
-f32 ksin(f32 x) {
-    return sinf(x);
-}
+f32 ksin(f32 x) { return sinf(x); }
 
-f32 kcos(f32 x) {
-    return cosf(x);
-}
+f32 kcos(f32 x) { return cosf(x); }
 
-f32 ktan(f32 x) {
-    return tanf(x);
-}
+f32 ktan(f32 x) { return tanf(x); }
 
-f32 kacos(f32 x) {
-    return acosf(x);
-}
+f32 kacos(f32 x) { return acosf(x); }
 
-f32 ksqrt(f32 x) {
-    return sqrtf(x);
-}
+f32 ksqrt(f32 x) { return sqrtf(x); }
 
-f32 kabs(f32 x) {
-    return fabsf(x);
-}
+f32 kabs(f32 x) { return fabsf(x); }
 
 i32 krandom(void) {
     if(!rand_seeded) {
@@ -50,11 +39,9 @@ i32 krandom_in_range(i32 min, i32 max) {
     return (rand() % (max - min + 1)) + min;
 }
 
-f32 fkrandom(void) {
-    return (float)krandom() / (f32)RAND_MAX;
-}
+f32 kfrandom(void) { return (float)krandom() / (f32)RAND_MAX; }
 
-f32 fkrandom_in_range(f32 min, f32 max) {
+f32 kfrandom_in_range(f32 min, f32 max) {
     return min + ((float)krandom() / ((f32)RAND_MAX / (max - min)));
 }
 
@@ -65,7 +52,7 @@ plane_3d plane_3d_create(vec3 p1, vec3 norm) {
     return p;
 }
 
-frustum frustom_create(const vec3* position, const vec3* forward, const vec3* right, const vec3* up, f32 aspect, f32 fov, f32 near, f32 far) {
+frustum frustum_create(const vec3* position, const vec3* forward, const vec3* right, const vec3* up, f32 aspect, f32 fov, f32 near, f32 far) {
     frustum f;
 
     f32 half_v = far * tanf(fov * 0.5f);
@@ -102,9 +89,7 @@ b8 frustum_intersects_sphere(const frustum* f, const vec3* center, f32 radius) {
 }
 
 b8 plane_intersects_aabb(const plane_3d* p, const vec3* center, const vec3* extents) {
-    f32 r = extents->x * kabs(p->normal.x) +
-            extents->y * kabs(p->normal.y) +
-            extents->z * kabs(p->normal.z);
+    f32 r = extents->x * kabs(p->normal.x) + extents->y * kabs(p->normal.y) + extents->z * kabs(p->normal.z);
 
     return -r <= plane_signed_distance(p, center);
 }

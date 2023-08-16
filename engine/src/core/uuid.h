@@ -7,4 +7,4 @@ typedef struct uuid {
 } uuid;
 
 void uuid_seed(u64 seed);
-uuid uuid_generate(void);
+KAPI uuid uuid_generate(void);

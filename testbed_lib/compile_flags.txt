@@ -1,0 +1,4 @@
+-I../testbed_lib/src
+-I../engine/src
+-DKEXPORT
+-D_DEBUG

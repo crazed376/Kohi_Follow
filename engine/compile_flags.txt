@@ -1,0 +1,3 @@
+-I../engine/src
+-DKEXPORT
+-D_DEBUG

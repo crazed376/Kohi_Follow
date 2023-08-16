@@ -1,13 +1,12 @@
 #include "image_loader.h"
 
-#include "core/logger.h"
 #include "core/kmemory.h"
 #include "core/kstring.h"
+#include "core/logger.h"
+#include "loader_utils.h"
 #include "platform/filesystem.h"
 #include "resources/resource_types.h"
 #include "systems/resource_system.h"
-#include "platform/filesystem.h"
-#include "loader_utils.h"
 
 // TODO: resource loader
 #define STB_IMAGE_IMPLEMENTATION
@@ -120,7 +119,8 @@ resource_loader image_resource_loader_create(void) {
     loader.custom_type = 0;
     loader.load = image_loader_load;
     loader.unload = image_loader_unload;
-    loader.type_path = "textures";
+    loader.type_path = "textures";	// FIXME: Shouldn't make assumptions about
+    								// this, should be passed as a param
 
     return loader;
 }

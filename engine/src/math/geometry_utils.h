@@ -12,3 +12,9 @@ void geometry_generate_tangents(u32 vertex_count, vertex_3d* vertices, u32 index
 // Allocates a new array in  out_vertices. Modifies indices in-place. Original vertex array
 // should be freed by caller
 void geometry_deduplicate_vertices(u32 vertex_count, vertex_3d* vertices, u32 index_count, u32* indices, u32* out_vertex_count, vertex_3d** out_vertices);
+
+struct terrain_vertex;
+
+void terrain_geometry_generate_normals(u32 vertex_count, struct terrain_vertex* vertices, u32 index_count, u32* indices);
+
+void terrain_geometry_generate_tangents(u32 vertex_count, struct terrain_vertex* vertices, u32 index_count, u32* indices);

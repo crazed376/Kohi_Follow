@@ -36,9 +36,13 @@ KAPI void renderer_texture_read_data(texture* t, u32 offset, u32 size, void** ou
 
 KAPI void renderer_texture_read_pixel(texture* t, u32 x, u32 y, u8** out_rgba);
 KAPI b8 renderer_geometry_create(geometry* geometry, u32 vertex_size, u32 vertex_count, const void* vertices, u32 index_size, u32 index_count, const void* indices);
+
+KAPI b8 renderer_geometry_upload(geometry* geometry);
+KAPI void renderer_geometry_vertex_update(geometry* g, u32 offset, u32 vertex_count, void* vertices);
 KAPI void renderer_geometry_destroy(geometry* geometry);
 
 KAPI void renderer_geometry_draw(geometry_render_data* data);
+
 KAPI b8 renderer_renderpass_begin(renderpass* pass, render_target* target);
 KAPI b8 renderer_renderpass_end(renderpass* pass);
 
@@ -52,10 +56,10 @@ KAPI b8 renderer_shader_use(struct shader* s);
 KAPI b8 renderer_shader_bind_globals(struct shader* s);
 KAPI b8 renderer_shader_bind_instance(struct shader* s, u32 instance_id);
 
-KAPI b8 renderer_shader_apply_globals(struct shader* s);
+KAPI b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update);
 KAPI b8 renderer_shader_apply_instance(struct shader* s, b8 needs_update);
 
-KAPI b8 renderer_shader_instance_resources_acquire(struct shader* s, texture_map** maps, u32* out_instance_id);
+KAPI b8 renderer_shader_instance_resources_acquire(struct shader* s, u32 texture_map_count, texture_map** maps, u32* out_instance_id);
 KAPI b8 renderer_shader_instance_resources_release(struct shader* s, u32 instance_id);
 
 KAPI b8 renderer_shader_uniform_set(struct shader* s, struct shader_uniform* uniform, const void* value);
@@ -80,7 +84,7 @@ KAPI b8 renderer_is_multithreaded(void);
 
 KAPI b8 renderer_flag_enabled_get(renderer_config_flags flag);
 KAPI void renderer_flag_enabled_set(renderer_config_flags flag, b8 enabled);
-KAPI b8 renderer_renderbuffer_create(renderbuffer_type type, u64 total_size, b8 use_freelist, renderbuffer* out_buffer);
+KAPI b8 renderer_renderbuffer_create(const char* name, renderbuffer_type type, u64 total_size, b8 use_freelist, renderbuffer* out_buffer);
 KAPI void renderer_renderbuffer_destroy(renderbuffer* buffer);
 KAPI b8 renderer_renderbuffer_bind(renderbuffer* buffer, u64 offset);
 KAPI b8 renderer_renderbuffer_unbind(renderbuffer* buffer);

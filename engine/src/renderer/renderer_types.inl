@@ -1,13 +1,14 @@
 #pragma once
 
+#include "containers/freelist.h"
 #include "defines.h"
 #include "math/math_types.h"
 #include "resources/resource_types.h"
-#include "containers/freelist.h"
 
 struct shader;
 struct shader_uniform;
 struct frame_data;
+struct terrain;
 
 typedef struct geometry_render_data {
     mat4 model;
@@ -115,6 +116,7 @@ typedef enum renderbuffer_type {
 } renderbuffer_type;
 
 typedef struct renderbuffer {
+	char* name;
     renderbuffer_type type;
     u64 total_size;
     u64 freelist_memory_requirement;
@@ -158,10 +160,9 @@ typedef struct renderer_plugin {
 	void (*scissor_reset)(struct renderer_plugin* plugin);
     b8 (*renderpass_begin)(struct renderer_plugin* plugin, renderpass* pass, render_target* target);
     b8 (*renderpass_end)(struct renderer_plugin* plugin, renderpass* pass);
-
-    void (*geometry_draw)(struct renderer_plugin* plugin, geometry_render_data* data);
-
+	
     void (*texture_create)(struct renderer_plugin* plugin, const u8* pixels, struct texture* texture);
+    
     void (*texture_destroy)(struct renderer_plugin* plugin, struct texture* texture);
     void (*texture_create_writeable)(struct renderer_plugin* plugin, texture* t);
     void (*texture_resize)(struct renderer_plugin* plugin, texture* t, u32 new_width, u32 new_height);
@@ -171,18 +172,22 @@ typedef struct renderer_plugin {
 	
 	void (*texture_read_pixel)(struct renderer_plugin* plugin, texture* t, u32 x, u32 y, u8** out_rgba);
 	
-    b8 (*geometry_create)(struct renderer_plugin* plugin, geometry* geometry, u32 vertex_size, u32 vertex_count, const void* vertices, u32 index_size, u32 index_count, const void* indices);
-    void (*geometry_destroy)(struct renderer_plugin* plugin, geometry* geometry);
+    b8 (*geometry_create)(struct renderer_plugin* plugin, geometry* g);
+	b8 (*geometry_upload)(struct renderer_plugin* plugin, geometry* g, u32 vertex_offset, u32 vertex_size, u32 index_offset, u32 index_size);
+	void (*geometry_vertex_update)(struct renderer_plugin* plugin, geometry* g, u32 offset, u32 vertex_count, void* vertices);
 
+    void (*geometry_destroy)(struct renderer_plugin* plugin, geometry* g);
+
+    void (*geometry_draw)(struct renderer_plugin* plugin, geometry_render_data* data);
     b8 (*shader_create)(struct renderer_plugin* plugin, struct shader* shader, const shader_config* config, renderpass* pass, u8 stage_count, const char** stage_filenames, shader_stage* stages);
     void (*shader_destroy)(struct renderer_plugin* plugin, struct shader* shader);
     b8 (*shader_initialize)(struct renderer_plugin* plugin, struct shader* shader);
     b8 (*shader_use)(struct renderer_plugin* plugin, struct shader* shader);
     b8 (*shader_bind_globals)(struct renderer_plugin* plugin, struct shader* s);
     b8 (*shader_bind_instance)(struct renderer_plugin* plugin, struct shader* s, u32 instance_id);
-    b8 (*shader_apply_globals)(struct renderer_plugin* plugin, struct shader* s);
+    b8 (*shader_apply_globals)(struct renderer_plugin* plugin, struct shader* s, b8 needs_update);
     b8 (*shader_apply_instance)(struct renderer_plugin* plugin, struct shader* s, b8 needs_update);
-    b8 (*shader_instance_resources_acquire)(struct renderer_plugin* plugin, struct shader* s, texture_map** maps, u32* out_instance_id);
+    b8 (*shader_instance_resources_acquire)(struct renderer_plugin* plugin, struct shader* s, u32 texture_map_count, texture_map** maps, u32* out_instance_id);
     b8 (*shader_instance_resources_release)(struct renderer_plugin* plugin, struct shader* s, u32 instance_id);
     b8 (*shader_uniform_set)(struct renderer_plugin* plugin, struct shader* frontend_shader, struct shader_uniform* uniform, const void* value);
 
@@ -222,46 +227,13 @@ typedef struct renderer_plugin {
     b8 (*renderbuffer_draw)(struct renderer_plugin* plugin, renderbuffer* buffer, u64 offset, u32 element_count, b8 bind_only);
 } renderer_plugin;
 
-typedef enum render_view_known_type {
-    RENDERER_VIEW_KNOWN_TYPE_WORLD = 0x01,
-    RENDERER_VIEW_KNOWN_TYPE_UI = 0x02,
-    RENDERER_VIEW_KNOWN_TYPE_SKYBOX = 0x03,
-    RENDERER_VIEW_KNOWN_TYPE_PICK = 0x04,
-} render_view_known_type;
-
-typedef enum render_view_view_matrix_source {
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_SCENE_CAMERA = 0x01,
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_UI_CAMERA = 0x02,
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_LIGHT_CAMERA = 0x03,
-} render_view_view_matrix_source;
-
-typedef enum render_view_projection_matrix_source {
-    RENDER_VIEW_PROJECTION_MATRIX_SOURCE_DEFAULT_PERSPECTIVE = 0x01,
-    RENDER_VIEW_PROJECTION_MATRIX_SOURCE_DEFAULT_ORTHOGRAPHIC = 0x02,
-} render_view_projection_matrix_source;
-
-typedef struct render_view_config {
-    const char* name;
-
-    const char* custom_shader_name;
-    u16 width;
-    u16 height;
-    render_view_known_type type;
-    render_view_view_matrix_source view_matrix_source;
-    render_view_projection_matrix_source projection_matrix_source;
-    u8 pass_count;
-    renderpass_config* passes;
-} render_view_config;
-
 struct render_view_packet;
 struct linear_allocator;
 
 typedef struct render_view {
-    u16 id;
     const char* name;
     u16 width;
     u16 height;
-    render_view_known_type type;
 
     u8 renderpass_count;
     renderpass* passes;
@@ -269,7 +241,7 @@ typedef struct render_view {
     const char* custom_shader_name;
     void* internal_data;
 
-    b8 (*on_create)(struct render_view* self);
+    b8 (*on_registered)(struct render_view* self);
     void (*on_destroy)(struct render_view* self);
 
     void (*on_resize)(struct render_view* self, u32 width, u32 height);
@@ -278,7 +250,7 @@ typedef struct render_view {
 
     void (*on_packet_destroy)(const struct render_view* self, struct render_view_packet* packet);
 
-    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, u64 frame_number, u64 render_target_index);
+    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, u64 frame_number, u64 render_target_index, const struct frame_data* p_frame_data);
 	b8 (*attachment_target_regenerate)(struct render_view* self, u32 pass_index, struct render_target_attachment* attachment);
 } render_view;
 
@@ -290,6 +262,16 @@ typedef struct render_view_packet {
     vec4 ambient_color;
     u32 geometry_count;
     geometry_render_data* geometries;
+
+	// The number of terrain geometries to be drawn
+	u32 terrain_geometry_count;
+	// The terrain geometries to be drawn
+	geometry_render_data* terrain_geometries;
+	
+	u32 debug_geometry_count;
+	geometry_render_data* debug_geometries;
+	
+	struct terrain** terrains;
     const char* custom_shader_name;
     void* extended_data;
 } render_view_packet;
@@ -310,6 +292,8 @@ typedef struct ui_packet_data {
 typedef struct pick_packet_data {
     // Copy of frame data darray ptr
     geometry_render_data* world_mesh_data;
+	// Copy of frame data darray ptr
+	geometry_render_data* terrain_mesh_data;
     mesh_packet_data ui_mesh_data;
     u32 ui_geometry_count;
     // TODO: temp

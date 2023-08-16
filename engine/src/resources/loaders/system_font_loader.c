@@ -157,7 +157,7 @@ static b8 import_fontconfig_file(file_handle* f, const char* type_path, const ch
             // buffer on the resource itself
             file_handle font_binary_handle;
             if(!filesystem_open(full_file_path, FILE_MODE_READ, true, &font_binary_handle)) {
-                KERROR("Unable to open binary font file, load process failed.");
+                KERROR("Unable to open binary font file. Load process failed.");
                 return false;
             }
             u64 file_size;

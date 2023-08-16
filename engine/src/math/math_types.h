@@ -63,6 +63,10 @@ typedef union vec4_u {
 
 typedef vec4 quat;
 
+// A 3x3 matrix
+typedef union mat3_u {
+	f32 data[12];
+} mat3;
 typedef union mat4_u {
     f32 data[16];
 } mat4;
@@ -91,6 +95,12 @@ typedef struct vertex_2d {
     vec2 texcoord;
 } vertex_2d;
 
+// Represents a single vertex in 3D space with position and color data only
+typedef struct color_vertex_3d {
+	vec4 position;
+	vec4 color;
+} color_vertex_3d;
+
 // Represents the transform of an object in the world.
 // Transforms can have a parent whose own transform is then
 // taken into account. NOTE: The properties of this should not
@@ -108,6 +118,7 @@ typedef struct transform {
     // position, rotation or scale have changed
     mat4 local;
 
+	f32 determinant;
     struct transform* parent;
 } transform;
 

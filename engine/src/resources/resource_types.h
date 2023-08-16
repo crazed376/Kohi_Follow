@@ -2,6 +2,8 @@
 
 #include "math/math_types.h"
 
+#define TERRAIN_MAX_MATERIAL_COUNT 4
+
 // Pre-defined resource types
 typedef enum resource_type {
     RESOURCE_TYPE_TEXT,
@@ -13,6 +15,7 @@ typedef enum resource_type {
     RESOURCE_TYPE_BITMAP_FONT,
     RESOURCE_TYPE_SYSTEM_FONT,
 	RESOURCE_TYPE_SIMPLE_SCENE,
+	RESOURCE_TYPE_TERRAIN,
     RESOURCE_TYPE_CUSTOM
 } resource_type;
 
@@ -52,6 +55,19 @@ typedef enum face_cull_mode {
     FACE_CULL_MODE_FRONT_AND_BACK = 0x3
 } face_cull_mode;
 
+typedef enum primitive_topology_type {
+	// Topology type not defined. Not valid for shader creation
+	PRIMITIVE_TOPOLOGY_TYPE_NONE = 0x00,
+	// A list of triangles. The default if nothing is defined
+	PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_LIST = 0x01,
+	PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_STRIP = 0x02,
+	PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_FAN = 0x04,
+	PRIMITIVE_TOPOLOGY_TYPE_LINE_LIST = 0x08,
+	PRIMITIVE_TOPOLOGY_TYPE_LINE_STRIP = 0x10,
+	PRIMITIVE_TOPOLOGY_TYPE_POINT_LIST = 0x20,
+	PRIMITIVE_TOPOLOGY_TYPE_MAX = PRIMITIVE_TOPOLOGY_TYPE_POINT_LIST << 1
+} primitive_topology_type;
+
 #define TEXTURE_NAME_MAX_LENGTH 512
 
 typedef enum texture_flag {
@@ -80,13 +96,6 @@ typedef struct texture {
     void* internal_data;
 } texture;
 
-typedef enum texture_use {
-    TEXTURE_USE_UNKNOWN = 0x00,
-    TEXTURE_USE_MAP_DIFFUSE = 0x01,
-    TEXTURE_USE_MAP_SPECULAR = 0x02,
-    TEXTURE_USE_MAP_NORMAL = 0x03,
-    TEXTURE_USE_MAP_CUBEMAP = 0x04,
-} texture_use;
 
 // Represents supported texture filtering modes
 typedef enum texture_filter {
@@ -103,7 +112,6 @@ typedef enum texture_repeat {
 
 typedef struct texture_map {
     texture* texture;
-    texture_use use;
     texture_filter filter_minify;
     texture_filter filter_magnify;
     texture_repeat repeat_u;
@@ -130,10 +138,7 @@ typedef struct font_kerning {
     i16 amount;
 } font_kerning;
 
-typedef enum font_type {
-    FONT_TYPE_BITMAP,
-    FONT_TYPE_SYSTEM
-} font_type;
+typedef enum font_type { FONT_TYPE_BITMAP, FONT_TYPE_SYSTEM } font_type;
 
 typedef struct font_data {
     font_type type;
@@ -177,33 +182,7 @@ typedef struct system_font_resource_data {
 
 #define MATERIAL_NAME_MAX_LENGTH 256
 
-typedef struct material_config {
-    char name[MATERIAL_NAME_MAX_LENGTH];
-    char* shader_name;
-    b8 auto_release;
-    vec4 diffuse_color;
-    f32 shininess;
-    char diffuse_map_name[TEXTURE_NAME_MAX_LENGTH];  
-    char specular_map_name[TEXTURE_NAME_MAX_LENGTH];
-    char normal_map_name[TEXTURE_NAME_MAX_LENGTH];
-} material_config;
-
-typedef struct material {
-    u32 id;
-    u32 generation;
-    u32 internal_id;
-    char name[MATERIAL_NAME_MAX_LENGTH];
-    vec4 diffuse_color;
-    texture_map diffuse_map;
-    texture_map specular_map;
-    texture_map normal_map;
-    f32 shininess;
-
-    u32 shader_id;
-
-    // Synced to the renderer's current frame number when the material has been applied that frame
-    u32 render_frame_number;
-} material;
+struct material;
 
 #define GEOMETRY_NAME_MAX_LENGTH 256
 
@@ -217,8 +196,16 @@ typedef struct geometry {
     u16 generation;
     vec3 center;
     extents_3d extents;
+
+	u32 vertex_count;
+	u32 vertex_element_size;
+	void* vertices;
+	
+	u32 index_count;
+	u32 index_element_size;
+	void* indices;
     char name[GEOMETRY_NAME_MAX_LENGTH];
-    material* material;
+    struct material* material;
 } geometry;
 
 struct geometry_config;
@@ -238,6 +225,8 @@ typedef struct mesh {
     u16 geometry_count;
     geometry** geometries;
     transform transform;
+    extents_3d extents;
+    void* debug_data;
 } mesh;
 
 // Shader stages available in the system
@@ -312,6 +301,7 @@ typedef struct shader_config {
 
     face_cull_mode cull_mode;
 
+	u32 topology_types;
     u8 attribute_count;
     shader_attribute_config* attributes;
 
@@ -324,6 +314,109 @@ typedef struct shader_config {
 	b8 depth_test;
 	b8 depth_write;
 } shader_config;
+
+typedef enum material_type {
+	// Invalid
+	MATERIAL_TYPE_UNKNOWN = 0,
+	MATERIAL_TYPE_PHONG = 1,
+	MATERIAL_TYPE_PBR = 2,
+	MATERIAL_TYPE_UI = 3,
+	MATERIAL_TYPE_TERRAIN = 4,
+	MATERIAL_TYPE_CUSTOM = 99
+} material_type;
+
+typedef struct material_config_prop {
+	char* name;
+	shader_uniform_type type;
+	u32 size;
+	// FIXME: This seems like a colossal waste of memory... perhaps a union or
+	// something better?
+	vec4 value_v4;
+	vec3 value_v3;
+	vec2 value_v2;
+	f32 value_f32;
+	u32 value_u32;
+	u16 value_u16;
+	u8 value_u8;
+	i32 value_i32;
+	i16 value_i16;
+	i8 value_i8;
+	mat4 value_mat4;
+} material_config_prop;
+
+typedef struct material_map {
+	char* name;
+	char* texture_name;
+	texture_filter filter_min;
+	texture_filter filter_mag;
+	texture_repeat repeat_u;
+	texture_repeat repeat_v;
+	texture_repeat repeat_w;
+} material_map;
+
+typedef struct material_config {
+	u8 version;
+	char* name;
+	material_type type;
+	char* shader_name;
+	// darray
+	material_config_prop* properties;
+	// darray
+	material_map* maps;
+	// Indicates if the material should be automatically released when no
+	// references to it remains
+	b8 auto_release;
+} material_config;
+
+typedef struct material_phong_properties {
+	// The diffuse color
+	vec4 diffuse_color;
+	
+	vec3 padding;
+	// The material shininess, determines how concentrated the specular
+	// lighting is
+	f32 shininess;
+} material_phong_properties;
+
+typedef struct material_ui_properties {
+	// The diffuse color
+	vec4 diffuse_color;
+} material_ui_properties;
+
+typedef struct material_terrain_properties {
+    material_phong_properties materials[4];
+    vec3 padding;
+    i32 num_materials;
+    vec4 padding2;
+} material_terrain_properties;
+
+typedef struct material {
+	u32 id;
+	material_type type;
+	u32 generation;
+	u32 internal_id;
+	char name[MATERIAL_NAME_MAX_LENGTH];
+	
+	texture_map* maps;
+	
+	u32 property_struct_size;
+	
+	// Array of material property structures, which varies based on material type
+	void* properties;
+	
+	// The diffuse color
+	// vec4 diffuse_color;
+	
+	// The material shininess, determines how concentrated the specular
+	// lighting is
+	// f32 shininess;
+	
+	u32 shader_id;
+	
+	// Synced to the renderer's current frame number when the material has
+	// been applied that frame
+	u32 render_frame_number;
+} material;
 
 typedef struct skybox_simple_scene_config {
 	char* name;
@@ -352,6 +445,12 @@ typedef struct mesh_simple_scene_config {
 	char* parent_name; // Optional
 } mesh_simple_scene_config;
 
+typedef struct terrain_simple_scene_config {
+	char* name;
+	char* resource_name;
+	transform xform;
+} terrain_simple_scene_config;
+
 typedef struct simple_scene_config {
 	char* name;
 	char* description;
@@ -363,4 +462,7 @@ typedef struct simple_scene_config {
 	
 	// darray
 	mesh_simple_scene_config* meshes;
+
+	// darray
+	terrain_simple_scene_config* terrains;
 } simple_scene_config;

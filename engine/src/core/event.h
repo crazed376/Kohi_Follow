@@ -133,6 +133,14 @@ typedef enum system_event_code {
 	/** An event fired when a watched file has been removed */
 	EVENT_CODE_WATCHED_FILE_DELETED = 0x19,
 	
+	/** An event fired when while a button is being held down and the mouse is moved */
+	EVENT_CODE_MOUSE_DRAGGED = 0x20,
+	
+	/** An event fired when a button is pressed and a mouse movement is done while it is pressed */
+	EVENT_CODE_MOUSE_DRAG_BEGIN = 0x21,
+	
+	/** An event fired when a button is released was previously dragging */
+	EVENT_CODE_MOUSE_DRAG_END = 0x22,
     /** The maximum event code that can be used internally. */
     MAX_EVENT_CODE = 0xFF
 } system_event_code;

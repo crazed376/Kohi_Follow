@@ -1,8 +1,8 @@
 #pragma once
 
+#include "containers/hashtable.h"
 #include "defines.h"
 #include "renderer/renderer_types.inl"
-#include "containers/hashtable.h"
 
 typedef struct shader_system_config {
     u16 max_shader_count;
@@ -49,6 +49,7 @@ typedef struct shader {
 
 	shader_flag_bits flags;
 	
+	u32 topology_types;
     // The amount of bytes that are required for UBO alignment
     // This is used along with the UBO size to determine the ultimate
     // stride, which is how much the UBOs are spaced out in the buffer.
@@ -120,7 +121,7 @@ KAPI b8 shader_system_uniform_set_by_index(u16 index, const void* value);
 
 KAPI b8 shader_system_sampler_set_by_index(u16 index, const struct texture* t);
 
-KAPI b8 shader_system_apply_global(void);
+KAPI b8 shader_system_apply_global(b8 needs_update);
 
 KAPI b8 shader_system_apply_instance(b8 needs_update);
 

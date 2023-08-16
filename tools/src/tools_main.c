@@ -52,7 +52,9 @@ i32 process_shaders(i32 argc, char** argv) {
         char end_path[10];
         i32 length = string_length(argv[i]);
         string_ncopy(end_path, argv[i] + length - 9, 9);
-
+        
+        end_path[9] = 0;
+		
         // Parse the stage from the file name
         char stage[5];
         if(strings_equali(end_path, "frag.glsl")) {
@@ -63,6 +65,9 @@ i32 process_shaders(i32 argc, char** argv) {
             string_ncopy(stage, "geom", 4);
         } else if(strings_equali(end_path, "comp.glsl")) {
             string_ncopy(stage, "comp", 4);
+        } else {
+        	KERROR("Unrecognized stage '%s'.", end_path);
+        	return -5;
         }
         stage [4] = 0;
 
@@ -98,7 +103,7 @@ void print_help(void) {
     const char* extension = "";
 #endif
     KINFO(
-        "Kohi Game Engine Tools, Copyright 2021-2022 Richard Ramos.\n\
+        "Kohi Game Engine Tools, Copyright 2021-2022 Travis Vroman.\n\
   usage:  tools%s <mode> [arguments...]\n\
   \n\
   modes:\n\
