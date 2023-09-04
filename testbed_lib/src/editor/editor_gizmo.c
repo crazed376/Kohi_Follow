@@ -316,7 +316,7 @@ static void create_gizmo_mode_scale(editor_gizmo* gizmo) {
 	data->vertices[1].color = r;
 	data->vertices[1].position.x = 2.0f;
 	
-	// x
+	// y
 	data->vertices[2].color = g;  // First vert is at origin, no pos needed
 	data->vertices[3].color = g;
 	data->vertices[3].position.y = 2.0f;
@@ -873,7 +873,7 @@ void editor_gizmo_handle_interaction(editor_gizmo* gizmo, struct camera* c, stru
 						data->vertices[(i * 2) + 0].color = y;
 						data->vertices[(i * 2) + 1].color = y;
 					} else {
-						// Set non-hit axes baxk to their original colors
+						// Set non-hit axes back to their original colors
 						data->vertices[(i * 2) + 0].color = vec4_create(0.0f, 0.0f, 0.0f, 1.0f);
 						data->vertices[(i * 2) + 0].color.elements[i] = 1.0f;
 						data->vertices[(i * 2) + 1].color = vec4_create(0.0f, 0.0f, 0.0f, 1.0f);

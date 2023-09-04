@@ -18,6 +18,7 @@ struct terrain;
 struct ray;
 struct raycast_result;
 struct transform;
+struct viewport;
 
 typedef enum simple_scene_state {
     SIMPLE_SCENE_STATE_UNINITIALIZED,
@@ -82,7 +83,7 @@ KAPI b8 simple_scene_unload(simple_scene* scene, b8 immediate);
 
 KAPI b8 simple_scene_update(simple_scene* scene, const struct frame_data* p_frame_data);
 
-KAPI b8 simple_scene_populate_render_packet(simple_scene* scene, struct camera* current_camera, f32 aspect, struct frame_data* p_frame_data, struct render_packet* packet);
+KAPI b8 simple_scene_populate_render_packet(simple_scene* scene, struct camera* current_camera, struct viewport* v, struct frame_data* p_frame_data, struct render_packet* packet);
 
 KAPI b8 simple_scene_raycast(simple_scene* scene, const struct ray* r, struct raycast_result* out_result);
 

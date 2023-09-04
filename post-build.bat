@@ -20,6 +20,8 @@ tools.exe buildshaders ^
 ..\assets\shaders\Builtin.TerrainShader.frag.glsl ^
 ..\assets\shaders\Builtin.Color3DShader.vert.glsl ^
 ..\assets\shaders\Builtin.Color3DShader.frag.glsl ^
+..\assets\shaders\Builtin.WireframeShader.vert.glsl ^
+..\assets\shaders\Builtin.WireframeShader.frag.glsl
 
 IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
 

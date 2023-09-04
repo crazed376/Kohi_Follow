@@ -311,8 +311,8 @@ typedef struct shader_config {
     shader_stage* stages;
     char** stage_names;
     char** stage_filenames;
-	b8 depth_test;
-	b8 depth_write;
+	
+	u32 flags;
 } shader_config;
 
 typedef enum material_type {
@@ -415,7 +415,8 @@ typedef struct material {
 	
 	// Synced to the renderer's current frame number when the material has
 	// been applied that frame
-	u32 render_frame_number;
+	u64 render_frame_number;
+	u64 render_draw_index;
 } material;
 
 typedef struct skybox_simple_scene_config {

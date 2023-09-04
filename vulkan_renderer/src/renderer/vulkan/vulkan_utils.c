@@ -158,9 +158,9 @@ void vulkan_set_debug_object_tag(vulkan_context* context, VkObjectType object_ty
     }
 }
 
-void vulkan_begin_label(vulkan_context* context, VkCommandBuffer buffer, const char* label_name, vec4 colour) {
+void vulkan_begin_label(vulkan_context* context, VkCommandBuffer buffer, const char* label_name, vec4 color) {
     VkDebugUtilsLabelEXT label_info = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, 0, label_name};
-    kcopy_memory(label_info.color, &colour, sizeof(f32) * 4);
+    kcopy_memory(label_info.color, &color, sizeof(f32) * 4);
 
     if(context->pfnCmdBeginDebugUtilsLabelEXT) {
         context->pfnCmdBeginDebugUtilsLabelEXT(buffer, &label_info);

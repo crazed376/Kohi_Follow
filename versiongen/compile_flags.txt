@@ -1,3 +1,4 @@
--I../versiongen/src
+-I..\versiongen\src
 -DKIMPORT
+-D_CRT_SECURE_NO_WARNINGS
 -D_DEBUG

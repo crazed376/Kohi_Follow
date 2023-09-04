@@ -1,23 +1,20 @@
 #include "engine.h"
+
 #include "application_types.h"
-
-#include "version.h"
-
-#include "platform/platform.h"
-#include "core/kmemory.h"
-#include "core/logger.h"
-#include "core/event.h"
-#include "core/input.h"
-#include "core/clock.h"
-#include "core/kstring.h"
-#include "core/uuid.h"
-#include "core/metrics.h"
-#include "core/frame_data.h"
-
 #include "containers/darray.h"
-
-#include "renderer/renderer_frontend.h"
+#include "core/clock.h"
+#include "core/event.h"
+#include "core/frame_data.h"
+#include "core/input.h"
+#include "core/kmemory.h"
+#include "core/kstring.h"
+#include "core/logger.h"
+#include "core/metrics.h"
+#include "core/uuid.h"
 #include "memory/linear_allocator.h"
+#include "platform/platform.h"
+#include "renderer/renderer_frontend.h"
+#include "version.h"
 
 // Systems
 #include "core/systems_manager.h"
@@ -40,6 +37,28 @@ typedef struct engine_state_t {
 } engine_state_t;
 
 static engine_state_t* engine_state;
+
+// frame allocator functions
+static void* frame_allocator_allocate(u64 size) {
+	if(!engine_state) {
+		return 0;
+	}
+	
+	return linear_allocator_allocate(&engine_state->frame_allocator, size);
+}
+
+static void frame_allocator_free(u64 size) {
+	// NOTE: Linear allocator doesn't free, so this is a no-op
+	/* if(endinge_state) {
+	} */
+}
+
+static void frame_allocator_free_all(void) {
+	if(engine_state) {
+		// Don't wipe the memory each time, to save on performance
+		linear_allocator_free_all(&engine_state->frame_allocator, false);
+	}
+}
 
 // Event handlers
 static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context);
@@ -89,7 +108,11 @@ b8 engine_create(application* game_inst) {
 	
 	// Setup the frame allocator
 	linear_allocator_create(game_inst->app_config.frame_allocator_size, 0, &engine_state->frame_allocator);
-	engine_state->p_frame_data.frame_allocator = &engine_state->frame_allocator;
+	engine_state->p_frame_data.allocator.allocate = frame_allocator_allocate;
+	engine_state->p_frame_data.allocator.free = frame_allocator_free;
+	engine_state->p_frame_data.allocator.free_all = frame_allocator_free_all;
+	
+	// Allocate for the application's frame data
 	if(game_inst->app_config.app_frame_data_size > 0) {
 		engine_state->p_frame_data.application_frame_data = kallocate(game_inst->app_config.app_frame_data_size, MEMORY_TAG_GAME);
 	} else {
@@ -150,7 +173,7 @@ b8 engine_run(application* game_inst) {
 			engine_state->p_frame_data.delta_time = (f32)delta;
 			
 			// Reset the frame allocator
-			linear_allocator_free_all(&engine_state->frame_allocator);
+			engine_state->p_frame_data.allocator.free_all();
 			
             // Update systems
             systems_manager_update(&engine_state->sys_manager_state, &engine_state->p_frame_data);
@@ -166,15 +189,20 @@ b8 engine_run(application* game_inst) {
 
             // TODO: refactor packet creation
             render_packet packet = {};
-
+            
+            // Have the application generate the render packet
+            b8 prepare_result = engine_state->game_inst->prepare_render_packet(engine_state->game_inst, &packet, &engine_state->p_frame_data);
+            if(!prepare_result) {
+            	KERROR("Application failed to prepare the render packet. Skipping this frame.");
+            	continue;
+            }
+            
             // Call the game's render routine
             if(!engine_state->game_inst->render(engine_state->game_inst, &packet, &engine_state->p_frame_data)) {
             	KFATAL("Game render failed, shutting down.");
             	engine_state->is_running = false;
             	break;
             }
-
-            renderer_draw_frame(&packet, &engine_state->p_frame_data);
 
             // Cleanup the packet
             for(u32 i=0; i<packet.view_count; ++i) {

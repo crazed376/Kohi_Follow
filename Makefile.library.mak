@@ -12,7 +12,7 @@ ifeq ($(OS),Windows_NT)
 		BUILD_PLATFORM := windows
 		EXTENSION := .dll
 		COMPILER_FLAGS := -Wall -Wextra -Werror -Wvla -Wgnu-folding-constant -Wno-missing-braces -fdeclspec -Wstrict-prototypes -Wno-unused-parameter -Wno-missing-field-initializers
-		INCLUDE_FLAGS := -I./$(ASSEMBLY)\src $(ADDL_INC_FLAGS)
+		INCLUDE_FLAGS := -I$(ASSEMBLY)\src $(ADDL_INC_FLAGS)
 		LINKER_FLAGS := -shared -luser32 -L$(OBJ_DIR)\$(ASSEMBLY) -L.\$(BUILD_DIR) $(ADDL_LINK_FLAGS)
 		DEFINES += -D_CRT_SECURE_NO_WARNINGS
 
@@ -88,10 +88,12 @@ ifeq ($(DO_VERSION),yes)
 endif
 
 # Generate numeric-only version for PDBs
+ifeq ($(DO_VERSION),yes)
 ifeq ($(BUILD_PLATFORM),windows)
 	KNUMERIC_VERSION := $(shell $(DIR)\$(BUILD_DIR)\versiongen.exe -n)
 else
 	KNUMERIC_VERSION := $(shell $(BUILD_DIR)/versiongen -n)
+endif
 endif
 
 # Defaults to debug unless release is specified
@@ -104,7 +106,7 @@ COMPILER_FLAGS += -g -MD
 LINKER_FLAGS += -g
 endif
 
-all: scaffold compile link 
+all: scaffold compile link gen_compile_flags
 
 .PHONY: scaffold
 scaffold: #create build directory
@@ -173,5 +175,8 @@ endif
 
 .PHONY: gen_compile_flags
 gen_compile_flags:
+ifeq ($(BUILD_PLATFORM),windows)
+	$(shell powershell \"$(INCLUDE_FLAGS) $(DEFINES)\".replace('-I', '-I..\').replace(' ', \"`n\").replace('-I..\C:', '-IC:') > $(ASSEMBLY)/compile_flags.txt)
+else
 	@echo $(INCLUDE_FLAGS) $(DEFINES) | tr " " "\n" | sed "s/\-I\.\//\-I\.\.\//g" > $(ASSEMBLY)/compile_flags.txt
-
+endif

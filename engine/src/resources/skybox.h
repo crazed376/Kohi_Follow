@@ -1,8 +1,8 @@
 #pragma once
 
 #include "math/math_types.h"
+#include "renderer/renderer_types.h"
 #include "resources/resource_types.h"
-#include "renderer/renderer_types.inl"
 #include "systems/geometry_system.h"
 
 typedef struct skybox_config {
@@ -18,6 +18,8 @@ typedef struct skybox {
     u32 instance_id;
     // Synced to the renderer's current frame number when the material has been applied that frame
     u64 render_frame_number;
+    
+    u8 draw_index;
 } skybox;
 
 // Attempts to create a skybox using the specified parameters

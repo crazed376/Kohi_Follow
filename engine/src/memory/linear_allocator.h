@@ -13,4 +13,4 @@ KAPI void linear_allocator_create(u64 total_size, void* memory, linear_allocator
 KAPI void linear_allocator_destroy(linear_allocator* allocator);
 
 KAPI void* linear_allocator_allocate(linear_allocator* allocator, u64 size);
-KAPI void linear_allocator_free_all(linear_allocator* allocator);
+KAPI void linear_allocator_free_all(linear_allocator* allocator, b8 clear);
